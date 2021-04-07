@@ -16,7 +16,8 @@ void sampling();
 void generating();
 EventQueue sampling_queue(32 * EVENTS_EVENT_SIZE);
 EventQueue generating_queue(32 * EVENTS_EVENT_SIZE);
-Thread thread;
+Thread sampling_thread;
+Thread generating_thread;
 
 float ADCdata[2000];
 int counter=3;
@@ -47,24 +48,52 @@ void SEL()
     else if (counter==1) t=40;      // 25Hz
     else if (counter==0) t=100;     // 10Hz
     generating_queue.call(&generating);
-    generating_queue.dispatch();
     sampling_queue.call(&sampling);
-    thread.start(callback(&sampling_queue, &EventQueue::dispatch_forever));  
+
+    
+    generating_thread.start(callback(&generating_queue, &EventQueue::dispatch_forever));
+    sampling_thread.start(callback(&sampling_queue, &EventQueue::dispatch_forever));  
 }
 
 void generating()
 {
-    while(1)
-    {
+    while (1) {
+        // assuming VCC = 3.3v
+        i=0;
+        for (int x=0; x < (t*0.3);x++) {
+            i += (1.0/(t*0.3));
+            aout = i;
+            // ADCdata[count]=Ain;             // comment out when not sampling
+            // count++;
+            ThisThread::sleep_for(1ms);
+        }
+        for (int x=0; x<(t*0.7); x++) {
+            i -= (1.0/(t*0.7));
+            aout = i;
+            // ADCdata[count]=Ain;             // comment out when not sampling
+            // count++;
+            ThisThread::sleep_for(1ms);
+        }
+    }
+}
 
+void sampling()
+{
+    while(1) {
+        for (int i=0; i<2000; i++) {
+            ADCdata[i] = Ain;
+            ThisThread::sleep_for(1ms);
+        }
+        for (int i=500; i<1500; i++) {
+            printf("%f\r\n", ADCdata[i]);
+        }
+        ThisThread::sleep_for(20s);
     }
 }
 
 
-
 int main(void)
 {    
-    //queue.call(&sampling);
 
     uLCD.background_color(WHITE);
     uLCD.cls();
@@ -84,77 +113,14 @@ int main(void)
     while(1) {
 
         int t;
-        // int count=0;
         float i;
-
-        //while(1) {
 
         but_UP.rise(&UP);
         but_DOWN.rise(&DOWN);
         but_SEL.rise(SEL);
 
 
-
-        //     if (but_UP) {
-        //         if(counter<3) counter++;
-        //         else counter=3; 
-        //         print(counter);
-        //         ThisThread::sleep_for(50ms);
-        //     } else if (but_DOWN) {
-        //         if(counter>0) counter--;
-        //         else counter=0;
-        //         print(counter); 
-        //         ThisThread::sleep_for(50ms);
-        //     } else if (but_SEL) {
-        //         if (counter==3) t=10;           // 100Hz
-        //         else if (counter==2) t=20;      // 50Hz
-        //         else if (counter==1) t=40;      // 25Hz
-        //         else if (counter==0) t=100;     // 10Hz
-        //         break;
-        //     }
-        // }
-
-        // thread.start(callback(&sampling_queue, &EventQueue::dispatch_forever));       
-
-        while (1) {
-            // assuming VCC = 3.3v
-            i=0;
-            for (int x=0; x < (t*0.3);x++) {
-                i += (1.0/(t*0.3));
-                aout = i;
-                // ADCdata[count]=Ain;             // comment out when not sampling
-                // count++;
-                ThisThread::sleep_for(1ms);
-            }
-            for (int x=0; x<(t*0.7); x++) {
-                i -= (1.0/(t*0.7));
-                aout = i;
-                // ADCdata[count]=Ain;             // comment out when not sampling
-                // count++;
-                ThisThread::sleep_for(1ms);
-            }
-            // if (count>=2000) break;             // comment out when not sampling
-        }
-
-        // for (int x=500; x<1500; x++) {          // comment out when not sampling
-        //     printf("%f\r\n", ADCdata[x]);       // comment out when not sampling
-        // }                                       // comment out when not sampling
-
         ThisThread::sleep_for(10ms);            
-    }
-}
-
-void sampling()
-{
-    while(1) {
-        for (int i=0; i<2000; i++) {
-            ADCdata[i] = Ain;
-            ThisThread::sleep_for(1ms);
-        }
-        for (int i=500; i<1500; i++) {
-            printf("%f\r\n", ADCdata[i]);
-        }
-        ThisThread::sleep_for(20s);
     }
 }
 
